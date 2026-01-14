@@ -33,7 +33,7 @@
 
 ```bash
 git clone https://github.com/huchch1009-design/video_together.git
-cd watch_together_bete
+cd watch_together
 ```
 
 2. 安装依赖
