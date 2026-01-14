@@ -1,0 +1,110 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quarkpan"
+version = "1.0.5"
+description = "夸克网盘 Python 客户端和命令行工具"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "QuarkPan Team", email = "tequant.ai@gmail.com" }]
+maintainers = [{ name = "QuarkPan Team", email = "tequant.ai@gmail.com" }]
+keywords = ["quark", "pan", "cloud", "storage", "cli", "api", "client", "网盘"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: File Transfer Protocol (FTP)",
+    "Topic :: System :: Archiving",
+    "Topic :: Utilities",
+    "Environment :: Console",
+    "Natural Language :: Chinese (Simplified)",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "httpx>=0.24.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "qrcode>=7.4.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+]
+test = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0", "pytest-cov"]
+
+[project.urls]
+"Homepage" = "https://github.com/lich0821/QuarkPan"
+"Bug Reports" = "https://github.com/lich0821/QuarkPan/issues"
+"Source" = "https://github.com/lich0821/QuarkPan"
+"Documentation" = "https://github.com/lich0821/QuarkPan/blob/main/docs/"
+"Changelog" = "https://github.com/lich0821/QuarkPan/releases"
+
+[project.scripts]
+quarkpan = "quark_client.cli.main:app"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["quark_client*"]
+
+# 开发工具配置
+[tool.black]
+line-length = 120
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 120
+known_first_party = ["quark_client"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v --tb=short"

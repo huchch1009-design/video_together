@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>一起看电视 - 同步观看</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #10b981;
+      --dark: #1e293b;
+      --darker: #0f172a;
+      --light: #f8fafc;
+      --gray: #64748b;
+      --gray-light: #cbd5e1;
+      --card-bg: rgba(255, 255, 255, 0.1);
+      --card-border: rgba(255, 255, 255, 0.2);
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      --glass-blur: blur(16px);
+      --liquid-gradient: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(16, 185, 129, 0.3));
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--darker), var(--dark));
+      color: var(--light);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--liquid-gradient);
+      opacity: 0.1;
+      z-index: -1;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .hidden { display: none; }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: var(--glass-blur);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--card-border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+      z-index: -1;
+    }
+    .card:hover {
+      box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4);
+    }
+    h1, h2, h3 {
+      font-weight: 600;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h1 {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h2 {
+      font-size: 1.8rem;
+    }
+    h3 {
+      font-size: 1.4rem;
+    }
+    input, button, select {
+      padding: 12px 16px;
+      margin: 8px 0;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(15, 23, 42, 0.5);
+      color: var(--light);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+    button {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    button:hover {
+      box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    button::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+    button:focus:not(:active)::after {
+      animation: ripple 1s ease-out;
+    }
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+    #chatBox {
+      height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+    .msg {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .ai-msg {
+      margin: 12px 0;
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.6;
+    }
+    .ai-msg.user {
+      background: rgba(99, 102, 241, 0.15);
+      border-left: 3px solid var(--primary);
+    }
+    .ai-msg.assistant {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 3px solid var(--secondary);
+    }
+    .ai-msg.system {
+      color: var(--gray-light);
+      font-style: italic;
+      text-align: center;
+      background: transparent;
+      border: none;
+    }
+    .ai-msg.assistant h1,
+    .ai-msg.assistant h2,
+    .ai-msg.assistant h3,
+    .ai-msg.assistant h4,
+    .ai-msg.assistant h5,
+    .ai-msg.assistant h6 {
+      color: var(--light);
+      margin-top: 16px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .ai-msg.assistant h1 { font-size: 1.5rem; }
+    .ai-msg.assistant h2 { font-size: 1.3rem; }
+    .ai-msg.assistant h3 { font-size: 1.1rem; }
+    .ai-msg.assistant p {
+      margin: 8px 0;
+      color: var(--gray-light);
+    }
+    .ai-msg.assistant ul,
+    .ai-msg.assistant ol {
+      margin: 8px 0;
+      padding-left: 24px;
+      color: var(--gray-light);
+    }
+    .ai-msg.assistant li {
+      margin: 4px 0;
+    }
+    .ai-msg.assistant code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: #e2e8f0;
+    }
+    .ai-msg.assistant pre {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .ai-msg.assistant pre code {
+      background: transparent;
+      padding: 0;
+      color: #e2e8f0;
+    }
+    .ai-msg.assistant blockquote {
+      border-left: 4px solid var(--primary);
+      padding-left: 12px;
+      margin: 12px 0;
+      color: var(--gray);
+      font-style: italic;
+    }
+    .ai-msg.assistant a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .ai-msg.assistant a:hover {
+      text-decoration: underline;
+    }
+    .ai-msg.assistant table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+    }
+    .ai-msg.assistant th,
+    .ai-msg.assistant td {
+      border: 1px solid var(--card-border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .ai-msg.assistant th {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--light);
+    }
+    .ai-msg.assistant td {
+      color: var(--gray-light);
+    }
+    .ai-msg.assistant hr {
+      border: none;
+      border-top: 1px solid var(--card-border);
+      margin: 16px 0;
+    }
+    .ai-msg.assistant strong {
+      color: var(--light);
+      font-weight: 600;
+    }
+    .ai-thinking {
+      color: var(--secondary);
+      font-style: italic;
+      padding: 8px 12px;
+      background: rgba(16, 185, 129, 0.05);
+      border-radius: 8px;
+      margin: 8px 0;
+      font-size: 0.9em;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      cursor: pointer;
+      user-select: none;
+    }
+    .ai-thinking-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ai-thinking-header::before {
+      content: '▶';
+      font-size: 0.7em;
+      transition: transform 0.2s;
+    }
+    .ai-thinking.expanded .ai-thinking-header::before {
+      transform: rotate(90deg);
+    }
+    .ai-thinking-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      margin-top: 0;
+    }
+    .ai-thinking.expanded .ai-thinking-content {
+      max-height: 500px;
+      margin-top: 8px;
+    }
+    .ai-thinking-end {
+      color: var(--gray);
+      font-style: italic;
+      padding: 4px 12px;
+      font-size: 0.85em;
+      margin-top: 4px;
+    }
+    .system {
+      color: var(--gray-light);
+      font-style: italic;
+      text-align: center;
+      background: transparent;
+    }
+    .host-indicator {
+      color: var(--secondary);
+      font-weight: bold;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    #controlsRow {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    #controlsRow > * {
+      flex: 1;
+    }
+    #latency {
+      font-size: 14px;
+      color: var(--gray-light);
+      text-align: center;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 8px;
+    }
+    .role-select {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .role-option {
+      flex: 1;
+      text-align: center;
+      padding: 16px;
+      border: 2px solid var(--card-border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .role-option:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .role-option.selected {
+      border-color: var(--secondary);
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .role-option input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .error {
+      color: #ef4444;
+      padding: 8px 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    .success {
+      color: var(--secondary);
+      padding: 8px 12px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    .video-container {
+      position: relative;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    #videoPlayer {
+      width: 100%;
+      background: #000;
+      display: block;
+    }
+    .video-name-display {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+      color: var(--light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--card-border);
+    }
+    .video-name-display i {
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+    .video-name-display .name-text {
+      flex: 1;
+      word-break: break-all;
+    }
+    .video-name-display .empty {
+      color: var(--gray);
+      font-style: italic;
+    }
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.5);
+      margin-top: 12px;
+    }
+    .status-indicator::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gray);
+    }
+    .status-indicator.ready::before {
+      background: var(--secondary);
+    }
+    .status-indicator.error::before {
+      background: #ef4444;
+    }
+    .host-controls {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .info-text {
+      font-size: 0.9rem;
+      color: var(--gray-light);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .chat-container {
+      margin-top: 24px;
+    }
+    .chat-input-container {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .chat-input-container input {
+      flex: 1;
+    }
+    .chat-input-container button {
+      width: auto;
+      padding: 12px 20px;
+    }
+    .audience-management {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .audience-list {
+      margin-top: 16px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.2);
+    }
+    .audience-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .audience-item:last-child {
+      margin-bottom: 0;
+    }
+    .audience-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    .audience-name {
+      font-weight: 500;
+      color: var(--light);
+    }
+    .audience-drift {
+      font-size: 0.85rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      width: fit-content;
+    }
+    .audience-drift.drift-good {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+    .audience-drift.drift-warning {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+    .audience-drift.drift-bad {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    .kick-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      width: auto;
+    }
+    .kick-btn:hover {
+      background: #dc2626;
+    }
+    .viewer-controls {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .drift-control {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .drift-control label {
+      white-space: nowrap;
+    }
+    .drift-control input {
+      flex: 1;
+      margin: 0;
+    }
+    .drift-control span {
+      min-width: 40px;
+      text-align: center;
+    }
+    
+    .quark-file-browser {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      backdrop-filter: var(--glass-blur);
+    }
+    .quark-path {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .quark-path button {
+      width: auto;
+      padding: 8px 12px;
+      margin: 4px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+    .quark-path button:hover {
+      background: rgba(99, 102, 241, 0.3);
+    }
+    .quark-file-list {
+      margin-top: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.2);
+    }
+    .quark-file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease;
+    }
+    .quark-file-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+    .quark-file-item:last-child {
+      margin-bottom: 0;
+    }
+    .quark-file-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .quark-file-icon {
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+    .quark-file-name {
+      font-weight: 500;
+    }
+    .quark-file-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .quark-file-actions button {
+      width: auto;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    }
+    .quark-file-actions .enter-btn {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .quark-file-actions .enter-btn:hover {
+      background: rgba(16, 185, 129, 0.3);
+    }
+    .quark-file-actions .play-btn {
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+    .quark-file-actions .play-btn:hover {
+      background: rgba(99, 102, 241, 0.3);
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-dark);
+    }
+    
+    .ai-chat-container {
+      margin-top: 24px;
+    }
+    .ai-chat-body {
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+    .ai-chat-input {
+      padding: 12px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.5);
+      align-items: center;
+    }
+    .ai-chat-footer {
+      padding: 8px 16px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--gray);
+    }
+    .ai-chat-footer button {
+      background: transparent;
+      border: none;
+      color: var(--gray);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px;
+    }
+    .ai-chat-footer button:hover {
+      color: var(--light);
+    }
+    
+    .thinking-toggle {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .thinking-toggle label {
+      display: inline-block;
+      padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.3);
+      color: var(--gray-light);
+      border-radius: 20px;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      border: 1px solid var(--card-border);
+      cursor: pointer;
+    }
+
+    .thinking-toggle input[type="checkbox"]:checked + label {
+      background: rgba(16, 185, 129, 0.3);
+      color: var(--secondary);
+      border-color: var(--secondary);
+      font-weight: 600;
+    }
+
+    .thinking-toggle label:hover {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .thinking-toggle input[type="checkbox"]:checked + label:hover {
+      background: rgba(16, 185, 129, 0.4);
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+      .card {
+        padding: 20px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      h2 {
+        font-size: 1.5rem;
+      }
+      #controlsRow {
+        flex-direction: column;
+      }
+      .role-select {
+        flex-direction: column;
+      }
+      .drift-control {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .drift-control input {
+        width: 100%;
+      }
+      .quark-file-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .quark-file-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      .ai-chat-container .ai-chat-body {
+        height: 300px; 
+      }
+      .ai-chat-input {
+        flex-wrap: wrap;
+      gap: 6px;
+      }
+      .thinking-toggle label {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+      #aiToggleBtn {
+        bottom: 20px;
+        right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="joinSection" class="card">
+      <h1><i class="fas fa-tv"></i> 一起看电视</h1>
+      <h2>加入同步观看</h2>
+      <input type="text" id="nickInput" placeholder="昵称" value=""/>
+      <div class="role-select">
+        <div class="role-option selected" onclick="selectRole('viewer')">
+          <input type="radio" id="roleViewer" name="role" value="viewer" checked>
+          <label for="roleViewer"><i class="fas fa-user"></i> 观众</label>
+        </div>
+        <div class="role-option" onclick="selectRole('host')">
+          <input type="radio" id="roleHost" name="role" value="host">
+          <label for="roleHost"><i class="fas fa-crown"></i> 房主</label>
+        </div>
+      </div>
+      <div id="hostPasswordContainer" class="hidden">
+        <input type="password" id="hostPassword" placeholder="房主密码" />
+      </div>
+      <button onclick="joinSession()"><i class="fas fa-door-open"></i> 进入房间</button>
+      <div id="joinError" class="error hidden"></div>
+    </div>
+    <div id="mainSection" class="hidden">
+      <div class="card">
+        <h2><i class="fas fa-tv"></i> 一起看电视 <span id="hostIndicator"></span></h2>
+        <div id="videoNameDisplay" class="video-name-display">
+          <i class="fas fa-film"></i>
+          <span id="videoNameText" class="name-text empty">暂无视频</span>
+        </div>
+        <div class="video-container">
+          <video id="videoPlayer" controls playsinline preload="metadata"></video>
+        </div>
+        <div id="videoStatus" class="status-indicator">等待房主加载视频...</div>
+        <div id="hostControls" class="host-controls hidden">
+          <h3><i class="fas fa-cog"></i> 视频设置（房主专用）</h3>
+          <div class="quark-file-browser">
+            <h4><i class="fas fa-cloud"></i> Quark 登录并浏览文件</h4>
+            <div id="cookieLoginSection">
+              <input type="text" id="quarkCookie" placeholder="粘贴 Quark Cookie (用于登录)"/>
+              <button id="quarkLoginBtn" onclick="quarkLogin()"><i class="fas fa-sign-in-alt"></i> 登录并加载文件</button>
+            </div>
+            <div id="quarkLoginStatus" class="info-text"></div>
+            <div id="quarkFileBrowser" class="hidden">
+              <div class="quark-path" id="quarkPath"></div>
+              <div class="quark-file-actions">
+                <button onclick="goUpQuarkFolder()">返回上级</button>
+                <button id="quarkLogoutBtn" onclick="quarkLogout()">登出 Quark</button>
+                <button onclick="loadQuarkFiles('0')">根目录</button>
+              </div>
+              <div id="quarkFileList" class="quark-file-list"></div>
+            </div>
+          </div>
+          <input type="text" id="videoUrl" placeholder="视频直链（支持 M3U8 / Quark / 公开 MP4）"/>
+          <input type="text" id="videoCookie" placeholder="（可选）Cookie"/>
+          <button onclick="loadVideo()"><i class="fas fa-play-circle"></i> 加载视频</button>
+          <div class="audience-management">
+            <h3><i class="fas fa-users"></i> 观众管理</h3>
+            <button onclick="getAudienceList()"><i class="fas fa-list"></i> 查看观众列表</button>
+            <div id="audienceListContainer" class="hidden">
+              <div class="audience-list" id="audienceList">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="viewerControls" class="viewer-controls hidden">
+          <h3><i class="fas fa-sliders-h"></i> 同步设置</h3>
+          <div class="drift-control">
+            <label for="driftControl">同步误差:</label>
+            <input type="range" id="driftControl" min="1" max="5" step="0.5" value="2.0" oninput="updateTargetDrift(this.value)">
+            <span id="driftValue">2.0s</span>
+          </div>
+          <p class="info-text">调整与房主的播放误差，较大的误差可以减少卡顿，系统会自动维持设定的误差范围。</p>
+        </div>
+        <div id="controlsRow">
+          <button id="syncBtn" onclick="forceSyncToHost()" disabled><i class="fas fa-sync-alt"></i> 立即同步到房主</button>
+          <div id="latency"><i class="fas fa-signal"></i> RTT: -- ms | <i class="fas fa-clock"></i> 误差: --s</div>
+        </div>
+      </div>
+      <div class="card chat-container">
+        <h3><i class="fas fa-comments"></i> 聊天室</h3>
+        <div class="chat-input-container">
+          <input type="text" id="chatInput" placeholder="输入消息..." onkeypress="if(event.key==='Enter') sendChat()" />
+          <button onclick="sendChat()"><i class="fas fa-paper-plane"></i> 发送</button>
+        </div>
+        <div id="chatBox"></div>
+      </div>
+      <div class="card ai-chat-container">
+        <h3><i class="fas fa-robot"></i> AI智能助手 <span id="aiStatusBadge" class="status-badge offline"></span></h3>
+        <div class="ai-chat-body" id="aiChatBody">
+          <div class="ai-msg system">AI助手已就绪！可以问我各种问题。</div>
+        </div>
+        <div class="ai-chat-input">
+          <div class="thinking-toggle">
+            <input type="checkbox" id="enableThinking" checked style="display: none;">
+            <label for="enableThinking">深度思考</label>
+          </div>
+          <input type="text" id="aiMessageInput" placeholder="输入您的问题..." 
+                 style="flex: 1; margin: 0;"
+                 onkeypress="if(event.key==='Enter') sendAIMessage()">
+          <button onclick="sendAIMessage()" style="width: auto; padding: 10px 16px;">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div class="ai-chat-footer">
+          <div>
+            <button onclick="clearMyAIHistory()">
+              <i class="fas fa-trash"></i> 清空历史
+            </button>
+          </div>
+          <div>
+            <button onclick="toggleMyAI()" id="toggleAIBtn">
+              <i class="fas fa-power-off"></i> 启用AI
+            </button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    const socket = io();
+    let isHost = false;
+    let videoLoaded = false;
+    let videoReadyForSeek = false;
+    let lastLoadedUrl = ''; 
+    let ignoreNextSync = false; 
+    let heartbeatTimer = null; 
+    let lastHostEmit = 0; 
+    let latencySamples = [];
+    let playbackRateTimeout = null;
+    let lastHostTime = 0; 
+    let hlsPlayer = null; 
+    
+    let myAIEnabled = true;
+    let enableThinking = true; 
+    let currentAIMessage = ''; 
+    let currentAIThinking = ''; 
+    
+    const video = document.getElementById('videoPlayer');
+    const videoStatus = document.getElementById('videoStatus');
+    const syncBtn = document.getElementById('syncBtn');
+    const latencyEl = document.getElementById('latency');
+    const nickInput = document.getElementById('nickInput');
+    const hostPasswordContainer = document.getElementById('hostPasswordContainer');
+    const joinError = document.getElementById('joinError');
+    
+    class SyncManager {
+      constructor() {
+        this.targetDrift = 2.0; 
+        this.tolerance = 0.3;   
+        this.maxCatchUpRate = 1.2; 
+        this.minCatchUpRate = 0.9; 
+        this.lastAdjustTime = 0;
+        this.adjustCooldown = 3000; 
+      }
+      calculateRate(hostTime, localTime) {
+        const currentDrift = hostTime - localTime; 
+        const driftError = currentDrift - this.targetDrift; 
+        if (Math.abs(driftError) < this.tolerance) {
+          return 1.0;
+        }
+        const now = Date.now();
+        if (now - this.lastAdjustTime < this.adjustCooldown) {
+          return 1.0; 
+        }
+        this.lastAdjustTime = now;
+        if (driftError > 0) {
+          const catchUpNeeded = Math.min(driftError * 0.1, this.maxCatchUpRate - 1);
+          return 1.0 + catchUpNeeded;
+        }
+        else {
+          const slowDownNeeded = Math.max(driftError * 0.1, this.minCatchUpRate - 1);
+          return 1.0 + slowDownNeeded;
+        }
+      }
+      needsImmediateSync(hostTime, localTime) {
+        const currentDrift = hostTime - localTime;
+        return Math.abs(currentDrift - this.targetDrift) > 10.0;
+      }
+      forceSyncToHost(hostTime) {
+        const targetTime = Math.max(0, hostTime - this.targetDrift);
+        return targetTime;
+      }
+    }
+    
+    const syncManager = new SyncManager();
+    
+    function selectRole(role) {
+      document.querySelectorAll('.role-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      document.querySelector(`[for="role${role.charAt(0).toUpperCase() + role.slice(1)}"]`).parentElement.classList.add('selected');
+      document.querySelector(`#role${role.charAt(0).toUpperCase() + role.slice(1)}`).checked = true;
+      if (role === 'host') {
+        hostPasswordContainer.classList.remove('hidden');
+      } else {
+        hostPasswordContainer.classList.add('hidden');
+      }
+    }
+    
+    function joinSession() {
+      const nick = nickInput.value.trim();
+      const role = document.querySelector('input[name="role"]:checked').value;
+      if (!nick) return alert('请输入昵称');
+      let password = '';
+      if (role === 'host') {
+        password = document.getElementById('hostPassword').value.trim();
+        if (!password) {
+          showJoinError('请输入房主密码');
+          return;
+        }
+      }
+      isHost = (role === 'host');
+      socket.emit('join', { nick, is_host: isHost, password });
+      document.getElementById('joinSection').classList.add('hidden');
+      document.getElementById('mainSection').classList.remove('hidden');
+      setInterval(measureRTT, 5000);
+      setInterval(reportViewerState, 2000);
+      if (isHost) {
+        setInterval(getAudienceList, 3000);
+      }
+    }
+    
+    function showJoinError(msg) {
+      joinError.textContent = msg;
+      joinError.classList.remove('hidden');
+    }
+    
+    socket.on('host_password_error', (msg) => {
+      document.getElementById('joinSection').classList.remove('hidden');
+      document.getElementById('mainSection').classList.add('hidden');
+      showJoinError(msg);
+    });
+    
+    socket.on('role_forced_to_viewer', (msg) => {
+      addChatMessage(msg, 'system');
+      isHost = false;
+      document.querySelector('#roleViewer').checked = true;
+      selectRole('viewer');
+    });
+
+    function sendAIMessage() {
+      const input = document.getElementById('aiMessageInput');
+      const message = input.value.trim();
+      
+      if (!message) return;
+      
+      enableThinking = document.getElementById('enableThinking').checked;
+      updateThinkingToggle();
+      
+      addAIMessageToWindow(message, 'user');
+      
+      currentAIMessage = '';
+      currentAIThinking = '';
+      
+      socket.emit('ai_chat', { 
+        message: message,
+        enable_thinking: enableThinking 
+      });
+      
+      input.value = '';
+      
+      setTimeout(() => {
+        aiChatBody.scrollTop = aiChatBody.scrollHeight;
+      }, 100);
+    }
+
+    function addAIMessageToWindow(text, sender = 'user') {
+      const aiChatBody = document.getElementById('aiChatBody');
+      const div = document.createElement('div');
+      div.className = `ai-msg ${sender}`;
+      
+      if (sender === 'assistant') {
+        div.innerHTML = marked.parse(text);
+      } else {
+        div.textContent = text;
+      }
+      
+      aiChatBody.appendChild(div);
+      aiChatBody.scrollTop = aiChatBody.scrollHeight;
+    }
+
+    function addAIThinkingToWindow(text) {
+      const aiChatBody = document.getElementById('aiChatBody');
+      let thinkingDiv = document.getElementById('currentAIThinking');
+      
+      if (!thinkingDiv) {
+        thinkingDiv = document.createElement('div');
+        thinkingDiv.className = 'ai-thinking';
+        thinkingDiv.id = 'currentAIThinking';
+        
+        const header = document.createElement('div');
+        header.className = 'ai-thinking-header';
+        header.textContent = '🤔 思考过程';
+        
+        const content = document.createElement('div');
+        content.className = 'ai-thinking-content';
+        content.textContent = text;
+        
+        thinkingDiv.appendChild(header);
+        thinkingDiv.appendChild(content);
+        
+        thinkingDiv.addEventListener('click', () => {
+          thinkingDiv.classList.toggle('expanded');
+        });
+        
+        aiChatBody.appendChild(thinkingDiv);
+      } else {
+        const content = thinkingDiv.querySelector('.ai-thinking-content');
+        if (content) {
+          content.textContent = text;
+        }
+      }
+      
+      aiChatBody.scrollTop = aiChatBody.scrollHeight;
+    }
+
+    function clearMyAIHistory() {
+      if (confirm('确定要清空您的AI对话历史吗？')) {
+        socket.emit('clear_ai_history');
+        const aiChatBody = document.getElementById('aiChatBody');
+        aiChatBody.innerHTML = '<div class="ai-msg system">AI对话历史已清空</div>';
+      }
+    }
+
+    function toggleMyAI() {
+      socket.emit('toggle_ai', { enable: !myAIEnabled });
+    }
+
+    function updateAIStatusUI() {
+      const statusBadge = document.getElementById('aiStatusBadge');
+      const toggleBtn = document.getElementById('toggleAIBtn');
+      
+      if (myAIEnabled) {
+        statusBadge.textContent = '在线';
+        statusBadge.className = 'status-badge online';
+        toggleBtn.innerHTML = '<i class="fas fa-power-off"></i> 禁用AI';
+      } else {
+        statusBadge.textContent = '离线';
+        statusBadge.className = 'status-badge offline';
+        toggleBtn.innerHTML = '<i class="fas fa-power-off"></i> 启用AI';
+      }
+    }
+
+    function updateThinkingToggle() {
+      const checkbox = document.getElementById('enableThinking');
+      checkbox.checked = enableThinking;
+    }
+
+    socket.on('ai_thinking', (data) => {
+      currentAIThinking += data.message;
+      addAIThinkingToWindow(currentAIThinking);
+    });
+
+    socket.on('ai_thinking_end', (data) => {
+      const aiChatBody = document.getElementById('aiChatBody');
+      
+      const thinkingDiv = document.getElementById('currentAIThinking');
+      if (thinkingDiv) {
+        
+        const header = thinkingDiv.querySelector('.ai-thinking-header');
+        if (header) {
+          header.textContent = '✅ 思考完成';
+        }
+        
+        thinkingDiv.removeAttribute('id');
+      }
+      
+      currentAIThinking = '';
+      aiChatBody.scrollTop = aiChatBody.scrollHeight;
+    });
+
+    socket.on('ai_response_stream', (data) => {
+      const aiChatBody = document.getElementById('aiChatBody');
+      
+      let aiMsgDiv = document.getElementById('currentAIResponse');
+      if (!aiMsgDiv) {
+        aiMsgDiv = document.createElement('div');
+        aiMsgDiv.className = 'ai-msg assistant';
+        aiMsgDiv.id = 'currentAIResponse';
+        
+        const thinkingDiv = document.getElementById('currentAIThinking');
+        if (thinkingDiv) {
+          thinkingDiv.insertAdjacentElement('afterend', aiMsgDiv);
+        } else {
+          aiChatBody.appendChild(aiMsgDiv);
+        }
+      }
+      
+      currentAIMessage += data.message;
+      aiMsgDiv.innerHTML = marked.parse(currentAIMessage);
+      
+      if (data.done_thinking) {
+        aiMsgDiv.classList.add('ai-streaming');
+      }
+      
+      aiChatBody.scrollTop = aiChatBody.scrollHeight;
+    });
+
+    socket.on('ai_response_complete', (data) => {
+      
+      const aiMsgDiv = document.getElementById('currentAIResponse');
+      if (aiMsgDiv) {
+        aiMsgDiv.classList.remove('ai-streaming');
+      }
+      
+      if (aiMsgDiv) {
+        aiMsgDiv.removeAttribute('id');
+      }
+      
+      const aiChatBody = document.getElementById('aiChatBody');
+      aiChatBody.scrollTop = aiChatBody.scrollHeight;
+    });
+
+    socket.on('ai_response', (data) => {
+      
+      if (data.type === 'error') {
+        addAIMessageToWindow(data.message, 'system');
+      } else {
+        addAIMessageToWindow(data.message, 'assistant');
+      }
+    });
+
+    socket.on('ai_toggled', (data) => {
+      myAIEnabled = data.enabled;
+      updateAIStatusUI();
+      
+      if (myAIEnabled) {
+        addAIMessageToWindow(data.message || 'AI助手已启用', 'system');
+      } else {
+        addAIMessageToWindow(data.message || 'AI助手已禁用', 'system');
+      }
+    });
+
+    socket.on('ai_history_cleared', () => {
+      const aiChatBody = document.getElementById('aiChatBody');
+      aiChatBody.innerHTML = '<div class="ai-msg system">AI对话历史已清空，开始新的对话吧！</div>';
+    });
+
+    socket.on('joined', (data) => {
+      isHost = data.isHost;
+      document.getElementById('hostIndicator').textContent = isHost ? '（你是房主）' : `（房主：${data.hostNick}）`;
+      document.getElementById('hostIndicator').className = isHost ? 'host-indicator' : '';
+      if (isHost) {
+        document.getElementById('hostControls').classList.remove('hidden');
+        document.getElementById('viewerControls').classList.add('hidden');
+        syncBtn.disabled = true;
+        startHostHeartbeat();
+        
+        (async () => {
+          const r = await fetch('/quark/status?sid=' + encodeURIComponent(socket.id));
+          if (r.ok) {
+            const j = await r.json();
+            if (j.logged) {
+              document.getElementById('quarkLoginStatus').textContent = '已登录 (已保存 Cookie: ' + (j.cookie_mask || '') + ')';
+              document.getElementById('quarkFileBrowser').classList.remove('hidden');
+              quarkFolderStack = [{fid:'0',name:'根目录'}]; renderQuarkPath(); await loadQuarkFiles('0');
+            }
+          }
+        })();
+      } else {
+        document.getElementById('hostControls').classList.add('hidden');
+        document.getElementById('viewerControls').classList.remove('hidden');
+        syncBtn.disabled = false;
+      }
+      
+      if (data.aiEnabled !== undefined) {
+        myAIEnabled = data.aiEnabled;
+        updateAIStatusUI();
+      }
+    });
+
+    socket.on('host_status_update', (data) => {
+      document.getElementById('hostIndicator').textContent = `（房主：${data.hostNick}）`;
+      document.getElementById('hostIndicator').className = '';
+    });
+
+    socket.on('system', (msg) => {
+      addChatMessage(msg, 'system');
+    });
+    
+    socket.on('load_video', function(data) {
+      console.log('Loading video:', data);
+      
+      const videoNameText = document.getElementById('videoNameText');
+      if (data.videoName) {
+        videoNameText.textContent = data.videoName;
+        videoNameText.classList.remove('empty');
+      } else {
+        videoNameText.textContent = '未知视频';
+        videoNameText.classList.add('empty');
+      }
+      
+      const isM3U8 = data.is_m3u8 || (data.url && data.url.includes('.m3u8'));
+      
+      if (isM3U8) {
+        console.log('Loading M3U8 video');
+        playM3U8Video(data);
+      } else {
+        
+        const proxyUrl = `/proxy?url=${encodeURIComponent(data.url)}${data.cookie ? '&cookie=' + encodeURIComponent(data.cookie) : ''}`;
+        
+        if (proxyUrl === lastLoadedUrl) return;
+        
+        if (hlsPlayer) {
+          hlsPlayer.destroy();
+          hlsPlayer = null;
+        }
+        
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        
+        setTimeout(() => {
+          video.src = proxyUrl;
+          video.load();
+          lastLoadedUrl = proxyUrl;
+          videoStatus.textContent = '视频加载中...';
+          videoStatus.className = 'status-indicator';
+        }, 100);
+      }
+      
+      if (data.cookie) {
+        video.setAttribute('data-cookie', data.cookie);
+      }
+    });
+    
+    function loadHLS() {
+      return new Promise((resolve, reject) => {
+        if (typeof Hls !== 'undefined') {
+          resolve();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+    
+    function playM3U8Video(data) {
+      
+      if (hlsPlayer) {
+        hlsPlayer.destroy();
+        hlsPlayer = null;
+      }
+      
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      
+      const proxyUrl = `/m3u8_playlist?t=${Date.now()}`;
+      console.log('Using M3U8 proxy URL:', proxyUrl);
+      
+      loadHLS().then(() => {
+        
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          
+          video.src = proxyUrl;
+          video.load();
+          video.play().catch(e => console.log('Autoplay prevented:', e));
+          
+          videoStatus.textContent = '加载M3U8视频...';
+          videoStatus.className = 'status-indicator';
+          
+          lastLoadedUrl = proxyUrl;
+          console.log('Using native HLS playback');
+        } else if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+          
+          hlsPlayer = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 90,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 600,
+            maxBufferSize: 60 * 1000 * 1000,
+            maxBufferHole: 0.5,
+            maxSeekHole: 2,
+            maxFragLookUpTolerance: 0.2,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            xhrSetup: function(xhr, url) {
+              
+              if (data.cookie) {
+                xhr.setRequestHeader('Cookie', data.cookie);
+              }
+              xhr.setRequestHeader('Referer', 'https://pan.quark.cn/');
+              xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+            }
+          });
+          
+          hlsPlayer.loadSource(proxyUrl);
+          hlsPlayer.attachMedia(video);
+          
+          hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+            console.log('M3U8 manifest parsed, starting playback');
+            video.play().catch(e => console.log('Autoplay prevented:', e));
+            videoLoaded = true;
+            videoStatus.textContent = 'M3U8视频已就绪';
+            videoStatus.className = 'status-indicator ready';
+            if (!isHost) syncBtn.disabled = false;
+          });
+          
+          hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
+            console.error('HLS error:', data);
+            if (data.fatal) {
+              switch(data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.error('Network error, trying to recover...');
+                  hlsPlayer.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.error('Media error, trying to recover...');
+                  hlsPlayer.recoverMediaError();
+                  break;
+                default:
+                  console.error('Fatal HLS error, cannot recover');
+                  videoStatus.textContent = '❌ M3U8视频加载失败';
+                  videoStatus.className = 'status-indicator error';
+                  break;
+              }
+            }
+          });
+          
+          videoStatus.textContent = '加载M3U8视频...';
+          videoStatus.className = 'status-indicator';
+          
+          lastLoadedUrl = proxyUrl;
+          console.log('Using HLS.js for playback');
+        } else {
+          
+          console.error('HLS not supported');
+          videoStatus.textContent = '❌ 浏览器不支持M3U8视频播放';
+          videoStatus.className = 'status-indicator error';
+        }
+      }).catch(err => {
+        console.error('Failed to load HLS.js:', err);
+        videoStatus.textContent = '❌ 无法播放M3U8视频：需要HLS支持';
+        videoStatus.className = 'status-indicator error';
+      });
+    }
+    
+    socket.on('video_disconnected', msg => {
+      addChatMessage("房主已离开，视频已中断", 'system');
+      
+      if (hlsPlayer) {
+        hlsPlayer.destroy();
+        hlsPlayer = null;
+      }
+      
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      videoStatus.textContent = '视频已中断（房主离开）';
+      videoStatus.className = 'status-indicator error';
+      videoLoaded = false;
+      videoReadyForSeek = false;
+    });
+    
+    socket.on('disconnect', () => {
+      addChatMessage('与服务器断开连接', 'system');
+      
+      if (hlsPlayer) {
+        hlsPlayer.destroy();
+        hlsPlayer = null;
+      }
+      
+      if (video.src) {
+        video.pause();
+        videoStatus.textContent = '❌ 与服务器断开连接';
+        videoStatus.className = 'status-indicator error';
+        videoLoaded = false;
+        videoReadyForSeek = false;
+        if (!isHost) {
+          syncBtn.disabled = true;
+        }
+      }
+    });
+    
+    socket.on('kicked', (msg) => {
+      alert(msg);
+      window.location.reload();
+    });
+    
+    socket.on('audience_list_update', (audience) => {
+      if (isHost) {
+        updateAudienceList(audience);
+      }
+    });
+    
+    socket.on('audience_list', (audience) => {
+      updateAudienceList(audience);
+      document.getElementById('audienceListContainer').classList.remove('hidden');
+    });
+    
+    video.addEventListener('loadedmetadata', () => {
+      videoReadyForSeek = true;
+    });
+    
+    video.addEventListener('canplay', () => {
+      videoLoaded = true;
+      videoStatus.textContent = '视频已就绪';
+      videoStatus.className = 'status-indicator ready';
+      if (!isHost) syncBtn.disabled = false;
+    });
+    
+    video.addEventListener('error', () => {
+      videoStatus.textContent = '❌ 视频加载失败，请检查链接或 Cookie';
+      videoStatus.className = 'status-indicator error';
+      videoLoaded = false;
+      videoReadyForSeek = false;
+    });
+    
+    function startHostHeartbeat() {
+      if (!isHost) return;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        if (!isHost || !videoLoaded) return;
+        if (video.paused) return; 
+        const now = Date.now();
+        if (now - lastHostEmit < 1000) return; 
+        lastHostEmit = now;
+        socket.emit('control', { action: 'heartbeat', time: video.currentTime });
+      }, 500);
+    }
+    
+    function stopHostHeartbeat() {
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    }
+    
+    video.addEventListener('play', () => {
+      if (isHost && videoLoaded) {
+        socket.emit('control', { action: 'play', time: video.currentTime });
+        startHostHeartbeat();
+      } else {
+        ignoreNextSync = true; 
+      }
+    });
+    
+    video.addEventListener('pause', () => {
+      if (isHost && videoLoaded) {
+        socket.emit('control', { action: 'pause', time: video.currentTime });
+        stopHostHeartbeat();
+      } else {
+        ignoreNextSync = true;
+      }
+    });
+    
+    video.addEventListener('seeked', () => {
+      if (isHost && videoLoaded) {
+        socket.emit('control', { action: 'seek', time: video.currentTime });
+      } else {
+        ignoreNextSync = true;
+      }
+    });
+    
+    socket.on('playback_state', (state) => {
+      if (isHost) return;
+      if (!videoLoaded || !videoReadyForSeek) return;
+      if (typeof state.time === 'number') {
+        lastHostTime = state.time;
+      }
+      if (ignoreNextSync) {
+        ignoreNextSync = false;
+        return;
+      }
+      if (typeof state.time === 'number') {
+        const hostTime = state.time;
+        const localTime = video.currentTime;
+        if (syncManager.needsImmediateSync(hostTime, localTime)) {
+          const targetTime = Math.max(0, hostTime - syncManager.targetDrift);
+          try {
+            video.currentTime = targetTime;
+            console.log(`大偏差跳转: 房主${hostTime.toFixed(1)}s -> 观众${targetTime.toFixed(1)}s (保持${syncManager.targetDrift}s误差)`);
+          } catch (e) {
+            console.warn('跳转失败', e);
+          }
+          return;
+        }
+        const desiredRate = syncManager.calculateRate(hostTime, localTime);
+        const currentDrift = hostTime - localTime;
+        if (desiredRate !== 1.0 && Math.abs(desiredRate - video.playbackRate) > 0.01) {
+          video.playbackRate = desiredRate;
+          if (playbackRateTimeout) clearTimeout(playbackRateTimeout);
+          playbackRateTimeout = setTimeout(() => {
+            if (Math.abs(video.playbackRate - 1.0) > 0.01) {
+              video.playbackRate = 1.0;
+              console.log('恢复正常播放速率');
+            }
+          }, 10000);
+          console.log(`速率调整: ${desiredRate.toFixed(3)}, 当前误差: ${currentDrift.toFixed(2)}s, 目标误差: ${syncManager.targetDrift}s`);
+        }
+        updateLatencyDisplay(currentDrift);
+      }
+      if (state.paused !== video.paused) {
+        if (state.paused) {
+          video.pause();
+        } else {
+          video.play().catch(() => {});
+        }
+      }
+    });
+    
+    function updateLatencyDisplay(currentDrift) {
+      const avgLatency = latencySamples.length > 0 ?
+        Math.round(latencySamples.reduce((a,b)=>a+b,0)/latencySamples.length) : 0;
+      const driftStatus = Math.abs(currentDrift - syncManager.targetDrift) < syncManager.tolerance ?
+        '✓' : '↻';
+      latencyEl.innerHTML =
+        `<i class="fas fa-signal"></i> RTT: ${avgLatency}ms | ` +
+        `<i class="fas fa-clock"></i> 误差: ${currentDrift.toFixed(1)}s ${driftStatus}`;
+    }
+    
+    function forceSyncToHost() {
+      if (isHost || !videoLoaded || !videoReadyForSeek) return;
+      ignoreNextSync = true;
+      if (lastHostTime > 0) {
+        const targetTime = syncManager.forceSyncToHost(lastHostTime);
+        try {
+          const wasPlaying = !video.paused;
+          video.currentTime = targetTime;
+          video.playbackRate = 1.0; 
+          if (wasPlaying) {
+            video.play().catch(() => {});
+          }
+          console.log(`强制同步: 房主${lastHostTime.toFixed(1)}s -> 观众${targetTime.toFixed(1)}s`);
+          addChatMessage(`已强制同步到房主进度 (误差: ${syncManager.targetDrift}s)`, 'system');
+        } catch (e) {
+          console.warn('强制同步失败', e);
+          addChatMessage('同步失败，请稍后重试', 'system');
+        }
+      } else {
+        socket.emit('sync_request', {});
+        addChatMessage('正在请求房主进度...', 'system');
+      }
+      setTimeout(() => {
+        ignoreNextSync = false;
+      }, 3000);
+    }
+    
+    socket.on('chat', (data) => {
+      addChatMessage(`${data.nick}: ${data.msg}`);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateAIStatusUI();
+      updateThinkingToggle();
+      
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        console.log('浏览器原生支持HLS');
+      }
+      
+      document.getElementById('enableThinking').addEventListener('change', function() {
+        enableThinking = this.checked;
+        updateThinkingToggle();
+      });
+      
+      document.querySelector('label[for="enableThinking"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        const checkbox = document.getElementById('enableThinking');
+        checkbox.checked = !checkbox.checked;
+        enableThinking = checkbox.checked;
+        
+        const event = new Event('change');
+        checkbox.dispatchEvent(event);
+      });
+    });
+    
+    function loadVideo() {
+      const url = document.getElementById('videoUrl').value.trim();
+      const cookie = document.getElementById('videoCookie').value.trim();
+      if (!url) return alert('请输入视频链接');
+      
+      let videoName = url;
+      try {
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        const filename = pathname.split('/').pop();
+        if (filename && filename.length > 0) {
+          videoName = filename;
+        } else {
+          videoName = url.split('/').pop() || url;
+        }
+      } catch (e) {
+        videoName = url.split('/').pop() || url;
+      }
+      
+      const isM3U8 = url.includes('.m3u8');
+      
+      if (isM3U8) {
+        console.log('Host loading M3U8 video:', url);
+        videoStatus.textContent = '正在加载M3U8视频...';
+        
+        socket.emit('load_video', { url, cookie, is_m3u8: true, videoName });
+      } else {
+        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}${cookie ? '&cookie=' + encodeURIComponent(cookie) : ''}`;
+        
+        if (hlsPlayer) {
+          hlsPlayer.destroy();
+          hlsPlayer = null;
+        }
+        
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        
+        setTimeout(() => {
+          video.src = proxyUrl;
+          video.load();
+          lastLoadedUrl = proxyUrl;
+          videoStatus.textContent = '视频加载中...';
+          videoStatus.className = 'status-indicator';
+          
+          socket.emit('load_video', { url, cookie, is_m3u8: false, videoName });
+        }, 100);
+      }
+    }
+    
+    function loadVideoWithCustomName(customName) {
+      const url = document.getElementById('videoUrl').value.trim();
+      const cookie = document.getElementById('videoCookie').value.trim();
+      if (!url) return alert('请输入视频链接');
+      
+      const isM3U8 = url.includes('.m3u8');
+      
+      if (isM3U8) {
+        console.log('Host loading M3U8 video:', url);
+        videoStatus.textContent = '正在加载M3U8视频...';
+        
+        socket.emit('load_video', { url, cookie, is_m3u8: true, videoName: customName });
+      } else {
+        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}${cookie ? '&cookie=' + encodeURIComponent(cookie) : ''}`;
+        
+        if (hlsPlayer) {
+          hlsPlayer.destroy();
+          hlsPlayer = null;
+        }
+        
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        
+        setTimeout(() => {
+          video.src = proxyUrl;
+          video.load();
+          lastLoadedUrl = proxyUrl;
+          videoStatus.textContent = '视频加载中...';
+          videoStatus.className = 'status-indicator';
+          
+          socket.emit('load_video', { url, cookie, is_m3u8: false, videoName: customName });
+        }, 100);
+      }
+    }
+    
+    let currentQuarkFolderId = '0';
+    let currentQuarkPath = '/';
+    let quarkFolderStack = [{fid:'0',name:'/'}];
+
+    async function quarkLogin() {
+      const cookie = document.getElementById('quarkCookie').value.trim();
+      if (!cookie) return alert('请输入 Quark Cookie');
+      const sid = socket.id;
+      document.getElementById('quarkLoginStatus').textContent = '正在登录...';
+      try {
+        const r = await fetch('/quark/login', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ sid, cookie })
+        });
+        const j = await r.json();
+        if (!r.ok) {
+          document.getElementById('quarkLoginStatus').textContent = '登录失败: ' + (j.error || JSON.stringify(j));
+          return;
+        }
+        document.getElementById('quarkLoginStatus').textContent = '登录成功，加载根目录...';
+        document.getElementById('quarkFileBrowser').classList.remove('hidden');
+        document.getElementById('quarkCookie').value = cookie;
+        currentQuarkFolderId = '0'; currentQuarkPath = '/';
+        renderQuarkPath();
+        await loadQuarkFiles('0');
+        
+        quarkFolderStack = [{fid:'0', name:'根目录'}];
+        renderQuarkPath();
+      } catch (e) {
+        document.getElementById('quarkLoginStatus').textContent = '登录失败: ' + e;
+      }
+    }
+
+    function renderQuarkPath(){
+      const container = document.getElementById('quarkPath');
+      container.innerHTML = '';
+      quarkFolderStack.forEach((seg, idx) => {
+        const btn = document.createElement('button');
+        btn.style.marginRight = '4px';
+        btn.textContent = idx === 0 ? '根目录' : seg.name;
+        btn.onclick = () => {
+          
+          const newStack = quarkFolderStack.slice(0, idx+1);
+          quarkFolderStack = newStack;
+          currentQuarkFolderId = newStack[newStack.length-1].fid;
+          currentQuarkPath = '/' + quarkFolderStack.map(x => x.name).slice(1).join('/') + (newStack.length>1?'/':'');
+          renderQuarkPath();
+          loadQuarkFiles(currentQuarkFolderId);
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    async function loadQuarkFiles(folderId = null) {
+        
+        if (!folderId) folderId = quarkFolderStack[quarkFolderStack.length - 1]?.fid || '0';
+        
+        if (folderId === '0') {
+            quarkFolderStack = [{fid:'0',name:'根目录'}];
+            currentQuarkPath = '/';
+        } else if (quarkFolderStack.some(s => s.fid === folderId)) {
+            const idx = quarkFolderStack.findIndex(s => s.fid === folderId);
+            quarkFolderStack = quarkFolderStack.slice(0, idx+1);
+            currentQuarkPath = '/' + quarkFolderStack.map(x => x.name).slice(1).join('/') + (quarkFolderStack.length>1?'/':'');
+        } else {
+            
+            try {
+                const sid = socket.id;
+                const infoResp = await fetch('/quark/file_info?sid=' + encodeURIComponent(sid) + '&fid=' + encodeURIComponent(folderId));
+                const infoJson = await infoResp.json();
+                if (infoResp.ok && infoJson.data) {
+                    const name = infoJson.data.file_name || folderId;
+                    quarkFolderStack.push({fid: folderId, name});
+                    currentQuarkPath = '/' + quarkFolderStack.map(x => x.name).slice(1).join('/') + '/';
+                } else {
+                    
+                    quarkFolderStack.push({fid: folderId, name: folderId});
+                    currentQuarkPath = '/' + quarkFolderStack.map(x => x.name).slice(1).join('/') + '/';
+                }
+            } catch(e) {
+                quarkFolderStack.push({fid: folderId, name: folderId});
+                currentQuarkPath = '/' + quarkFolderStack.map(x => x.name).slice(1).join('/') + '/';
+            }
+        }
+        
+        renderQuarkPath();
+        
+        const sid = socket.id;
+        const url = '/quark/files?sid=' + encodeURIComponent(sid) + '&folder_id=' + encodeURIComponent(folderId);
+        
+        try {
+            const r = await fetch(url);
+            const j = await r.json();
+            if (!r.ok) {
+                document.getElementById('quarkLoginStatus').textContent = '无法加载：' + (j.error || JSON.stringify(j));
+                return;
+            }
+            
+            const data = j.data || j;
+            const list = (data && data.list) || [];
+            const container = document.getElementById('quarkFileList');
+            container.innerHTML = '';
+            
+            if (!list || list.length === 0) {
+                container.innerHTML = '<div style="padding:8px;text-align:center;">空目录</div>';
+                return;
+            }
+            
+            list.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'quark-file-item';
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'quark-file-info';
+                
+                const icon = document.createElement('i');
+                icon.className = `quark-file-icon ${item.dir ? 'fas fa-folder' : 'fas fa-file-video'}`;
+                
+                const name = document.createElement('span');
+                name.className = 'quark-file-name';
+                name.textContent = item.file_name;
+                
+                fileInfo.appendChild(icon);
+                fileInfo.appendChild(name);
+                
+                const actions = document.createElement('div');
+                actions.className = 'quark-file-actions';
+                
+                if (item.dir) {
+                    const enterBtn = document.createElement('button');
+                    enterBtn.className = 'enter-btn';
+                    enterBtn.innerHTML = '<i class="fas fa-folder-open"></i> 进入';
+                    enterBtn.onclick = async () => {
+                        quarkFolderStack.push({fid:item.fid,name:item.file_name});
+                        currentQuarkFolderId = item.fid;
+                        currentQuarkPath = (currentQuarkPath.endsWith('/') ? currentQuarkPath : currentQuarkPath + '/') + item.file_name + '/';
+                        renderQuarkPath();
+                        await loadQuarkFiles(item.fid);
+                    };
+                    actions.appendChild(enterBtn);
+                } else {
+                    const playBtn = document.createElement('button');
+                    playBtn.className = 'play-btn';
+                    playBtn.innerHTML = '<i class="fas fa-play"></i> 选择质量并播放';
+                    playBtn.onclick = () => selectQuarkVideo(item);
+                    actions.appendChild(playBtn);
+                }
+                
+                itemEl.appendChild(fileInfo);
+                itemEl.appendChild(actions);
+                container.appendChild(itemEl);
+            });
+            
+        } catch(e) {
+            document.getElementById('quarkLoginStatus').textContent = '加载错误: ' + e;
+        }
+    }
+
+    function goUpQuarkFolder(){
+      if (quarkFolderStack.length <= 1) {
+        
+        return loadQuarkFiles('0');
+      }
+      quarkFolderStack.pop();
+      const fid = quarkFolderStack[quarkFolderStack.length - 1]?.fid || '0';
+      
+      if (quarkFolderStack.length <= 1){ currentQuarkPath = '/'; } else { currentQuarkPath = '/' + quarkFolderStack.map(x => x.name).slice(1).join('/') + '/'; }
+      renderQuarkPath();
+      loadQuarkFiles(fid);
+    }
+    
+    async function selectQuarkVideo(item){
+      const sid = socket.id;
+      const r = await fetch('/quark/play?sid=' + encodeURIComponent(sid) + '&fid=' + encodeURIComponent(item.fid));
+      const j = await r.json();
+      if (!r.ok) {
+        alert('获取视频链接失败: ' + (j.error || JSON.stringify(j)));
+        return;
+      }
+      
+      const videoName = item.file_name || '未知视频';
+      
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `;
+      
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = `
+        background: var(--darker);
+        border-radius: 16px;
+        padding: 24px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80%;
+        overflow-y: auto;
+        border: 1px solid var(--card-border);
+      `;
+      
+      modalContent.innerHTML = `
+        <h3 style="margin-bottom: 20px;">选择清晰度</h3>
+        ${j.hasM3U8 ? `<div style="margin-bottom: 20px;">
+          <h4 style="color: var(--secondary); margin-bottom: 10px;">M3U8 格式</h4>
+          <div id="m3u8Options" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>` : ''}
+        ${j.hasMP4 ? `<div style="margin-bottom: 20px;">
+          <h4 style="color: var(--primary); margin-bottom: 10px;">MP4 格式（推荐）</h4>
+          <div id="mp4Options" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>` : ''}
+        <div style="display: flex; justify-content: flex-end; margin-top: 20px; gap: 10px;">
+          <button id="cancelBtn" style="
+            background: rgba(100, 116, 139, 0.3);
+            border: none;
+            color: var(--light);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+          ">取消</button>
+        </div>
+      `;
+      
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      if (j.hasM3U8 && j.m3u8Urls) {
+        const m3u8Container = modalContent.querySelector('#m3u8Options');
+        const resolutionOrder = ['4k', '2k', 'super', 'high', 'normal', 'low'];
+        
+        resolutionOrder.forEach(res => {
+          if (j.m3u8Urls[res]) {
+            const btn = document.createElement('button');
+            btn.style.cssText = `
+              background: rgba(16, 185, 129, 0.2);
+              border: 1px solid rgba(16, 185, 129, 0.3);
+              color: var(--light);
+              padding: 12px 16px;
+              border-radius: 8px;
+              text-align: left;
+              cursor: pointer;
+              transition: all 0.2s;
+            `;
+            btn.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fas fa-play-circle"></i> ${res.toUpperCase()}</span>
+                <small style="color: var(--gray-light);">M3U8 流式</small>
+              </div>
+            `;
+            btn.onmouseover = () => btn.style.background = 'rgba(16, 185, 129, 0.3)';
+            btn.onmouseout = () => btn.style.background = 'rgba(16, 185, 129, 0.2)';
+            btn.onclick = () => {
+              document.getElementById('videoUrl').value = j.m3u8Urls[res];
+              document.getElementById('videoCookie').value = document.getElementById('quarkCookie').value;
+              document.body.removeChild(modal);
+              loadVideoWithCustomName(videoName);
+            };
+            m3u8Container.appendChild(btn);
+          }
+        });
+      }
+      
+      if (j.hasMP4 && j.mp4Urls) {
+        const mp4Container = modalContent.querySelector('#mp4Options');
+        const resolutionOrder = ['4k', '2k', 'super', 'high', 'normal', 'low'];
+        
+        resolutionOrder.forEach(res => {
+          if (j.mp4Urls[res]) {
+            const btn = document.createElement('button');
+            btn.style.cssText = `
+              background: rgba(99, 102, 241, 0.2);
+              border: 1px solid rgba(99, 102, 241, 0.3);
+              color: var(--light);
+              padding: 12px 16px;
+              border-radius: 8px;
+              text-align: left;
+              cursor: pointer;
+              transition: all 0.2s;
+            `;
+            btn.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fas fa-file-video"></i> ${res.toUpperCase()}</span>
+                <small style="color: var(--gray-light);">MP4 直连</small>
+              </div>
+            `;
+            btn.onmouseover = () => btn.style.background = 'rgba(99, 102, 241, 0.3)';
+            btn.onmouseout = () => btn.style.background = 'rgba(99, 102, 241, 0.2)';
+            btn.onclick = () => {
+              document.getElementById('videoUrl').value = j.mp4Urls[res];
+              document.getElementById('videoCookie').value = document.getElementById('quarkCookie').value;
+              document.body.removeChild(modal);
+              loadVideoWithCustomName(videoName);
+            };
+            mp4Container.appendChild(btn);
+          }
+        });
+      }
+      
+      if (!j.hasM3U8 && !j.hasMP4) {
+        modalContent.innerHTML = `
+          <div style="text-align: center; padding: 40px;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--gray); margin-bottom: 20px;"></i>
+            <h3>未找到可用链接</h3>
+            <p style="color: var(--gray-light); margin-top: 10px;">该文件可能没有可播放的视频格式</p>
+            <button id="cancelBtn" style="
+              background: rgba(100, 116, 139, 0.3);
+              border: none;
+              color: var(--light);
+              padding: 10px 30px;
+              border-radius: 8px;
+              cursor: pointer;
+              margin-top: 20px;
+            ">关闭</button>
+          </div>
+        `;
+      }
+      
+      modalContent.querySelector('#cancelBtn').onclick = () => {
+        document.body.removeChild(modal);
+      };
+      
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+        }
+      };
+    }
+    
+    async function quarkLogout(){
+      const sid = socket.id;
+      try{
+        const r = await fetch('/quark/logout', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid})});
+        const j = await r.json();
+        if (!r.ok) { document.getElementById('quarkLoginStatus').textContent = '登出失败: ' + (j.error||JSON.stringify(j)); return; }
+        document.getElementById('quarkLoginStatus').textContent = '已登出';
+        document.getElementById('quarkFileBrowser').classList.add('hidden');
+        document.getElementById('quarkCookie').value = '';
+        quarkFolderStack = [{fid:'0',name:'根目录'}];
+        renderQuarkPath();
+      } catch(e){
+        document.getElementById('quarkLoginStatus').textContent = '登出失败: ' + e;
+      }
+    }
+
+    function sendChat() {
+      const msg = document.getElementById('chatInput').value.trim();
+      if (msg) {
+        socket.emit('chat', { nick: document.getElementById('nickInput').value, msg });
+        document.getElementById('chatInput').value = '';
+      }
+    }
+    
+    function addChatMessage(text, cls = '') {
+      const chatBox = document.getElementById('chatBox');
+      const div = document.createElement('div');
+      div.className = `msg ${cls}`;
+      div.textContent = text;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    
+    function measureRTT() {
+      const t0 = Date.now();
+      function onceState(state) {
+        const rtt = Date.now() - t0;
+        latencySamples.push(rtt);
+        if (latencySamples.length > 6) latencySamples.shift();
+        if (state.time && video.readyState > 0) {
+          const currentDrift = state.time - video.currentTime;
+          updateLatencyDisplay(currentDrift);
+        } else {
+          const avg = Math.round(latencySamples.reduce((a,b)=>a+b,0)/latencySamples.length);
+          latencyEl.textContent = `RTT: ${avg} ms`;
+        }
+        socket.off('playback_state', onceState);
+      }
+      socket.on('playback_state', onceState);
+      socket.emit('sync_request', {});
+    }
+    
+    function updateTargetDrift(value) {
+      syncManager.targetDrift = parseFloat(value);
+      document.getElementById('driftValue').textContent = value + 's';
+      console.log(`目标误差调整为: ${value}s`);
+    }
+    
+    function reportViewerState() {
+      if (isHost || !videoLoaded) return;
+      
+      const currentDrift = lastHostTime > 0 ? (lastHostTime - video.currentTime) : 0;
+      socket.emit('viewer_sync_state', {
+        current_time: video.currentTime,
+        drift: currentDrift
+      });
+    }
+    
+    function getAudienceList() {
+      socket.emit('get_audience_list');
+    }
+    
+    function updateAudienceList(audience) {
+      const audienceList = document.getElementById('audienceList');
+      audienceList.innerHTML = '';
+      if (audience.length === 0) {
+        audienceList.innerHTML = '<div class="audience-item">暂无观众</div>';
+        return;
+      }
+      audience.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'audience-item';
+        
+        const drift = user.drift || 0;
+        const driftText = drift.toFixed(1) + 's';
+        const driftClass = Math.abs(drift) <= 5 ? 'drift-good' : 'drift-warning';
+        const driftIcon = Math.abs(drift) <= 5 ? '✓' : '⚠';
+        
+        item.innerHTML = `
+          <div class="audience-info">
+            <span class="audience-name">${user.nick}</span>
+            <span class="audience-drift ${driftClass}">${driftIcon} 误差: ${driftText}</span>
+          </div>
+          <button class="kick-btn" onclick="kickAudience('${user.sid}')">踢出</button>
+        `;
+        audienceList.appendChild(item);
+      });
+    }
+    
+    function kickAudience(sid) {
+      if (confirm('确定要踢出这名观众吗？')) {
+        socket.emit('kick_audience', { sid });
+      }
+    }
+    
+    window.addEventListener('beforeunload', () => {
+      try { socket.disconnect(); } catch (e) {}
+    });
+  </script>
+</body>
+</html>
