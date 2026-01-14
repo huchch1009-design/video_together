@@ -1,4 +1,4 @@
-# Watch Together 
+# Watch Together
 
 实时视频同步观看应用，支持多人在线同步播放视频，集成夸克网盘和AI服务。
 
@@ -30,12 +30,14 @@
 ### 安装步骤
 
 1. 克隆项目
+
 ```bash
-git clone <repository_url>
+git clone https://github.com/huchch1009-design/video_together.git
 cd watch_together_bete
 ```
 
 2. 安装依赖
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -120,5 +122,3 @@ watch_together_bete/
 - 视频URL需要支持跨域访问
 - 夸克网盘视频需要有效的Cookie
 - AI功能需要有效的API密钥
-
-
